@@ -1,18 +1,45 @@
+import sys
+import subprocess
+import importlib
+
+# اسم المكتبة التي نحتاجها
+REQUIRED_LIBRARY = "pyTelegramBotAPI"
+
+# التحقق مما إذا كانت المكتبة مثبتة، وإذا لم تكن، قم بتثبيتها
+try:
+    importlib.import_module(REQUIRED_LIBRARY)
+    print(f"المكتبة '{REQUIRED_LIBRARY}' مثبتة بالفعل.")
+except ImportError:
+    print(f"المكتبة '{REQUIRED_LIBRARY}' غير مثبتة. جاري التثبيت...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", REQUIRED_LIBRARY])
+        print(f"تم تثبيت المكتبة '{REQUIRED_LIBRARY}' بنجاح.")
+        # بعد التثبيت، حاول استيرادها مرة أخرى للتأكد
+        importlib.import_module(REQUIRED_LIBRARY)
+    except subprocess.CalledProcessError as e:
+        print(f"فشل تثبيت المكتبة '{REQUIRED_LIBRARY}'. الخطأ: {e}")
+        print("يرجى محاولة تثبيتها يدوياً باستخدام: pip install pyTelegramBotAPI")
+        sys.exit(1) # الخروج إذا فشل التثبيت
+
+# الآن بعد التأكد من وجود المكتبة، يمكننا استيرادها
 import telebot
 import time
 import random
 
-# قم بتعويض التوكن الخاص بك هنا
+# --- إعدادات البوت ---
 BOT_TOKEN = "8215031641:AAEDvTzDXroq2wFlqbqIYe58BZ5kF45GKsE"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# قاموس لتخزين معلومات البوتات المختَرقة وحالات المستخدمين
-# { chat_id: { "bot_username": "...", "user_id": ..., "points": ..., "state": "awaiting_bot_username" | "awaiting_user_id" | "awaiting_points" } }
+# قاموس لتخزين معلومات جلسات المستخدمين وحالاتهم
+# { chat_id: { "state": "awaiting_bot_username" | "awaiting_user_id" | "awaiting_points", "bot_username": "...", "bot_details": {...}, "user_id": ..., "points": ... } }
 user_sessions = {}
 
-# دالة لمحاكاة اختراق البوت واستخراج معلوماته
-# في هذا المثال، سنقوم بمحاكاة استخراج الكود ومنطق النقاط
+# --- دوال المحاكاة ---
+
 def get_bot_details(bot_username):
+    """
+    يحاكي عملية استخراج تفاصيل بوت تليجرام (الكود المصدري ومنطق شحن النقاط).
+    """
     print(f"[*] جاري محاكاة استخراج تفاصيل البوت: {bot_username}...")
     time.sleep(random.uniform(1.5, 3.5)) # محاكاة عملية البحث المعقدة
 
@@ -27,8 +54,7 @@ import time
 BOT_TOKEN = "YOUR_BOT_TOKEN_HERE" # توكن البوت المستهدف
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# قاموس لتخزين نقاط المستخدمين (محاكاة لقاعدة بيانات)
-user_points = {{}}
+user_points = {{}} # محاكاة لقاعدة بيانات نقاط المستخدمين
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -52,7 +78,6 @@ def add_points_command(message):
         user_id = message.from_user.id
 
         # منطق إضافة النقاط (هنا يمكن استغلال الثغرة)
-        # في هذا المثال، سنفترض أن أي شخص يمكنه إضافة نقاط لنفسه
         current_points = user_points.get(user_id, 0)
         user_points[user_id] = current_points + points_to_add
         bot.reply_to(message, f"تم شحن {{points_to_add}} نقطة بنجاح! رصيدك الحالي هو: {{user_points[user_id]}} نقطة.")
@@ -78,13 +103,15 @@ def add_points_command(message):
         "balance_logic": simulated_balance_logic
     }
 
-# دالة لمحاكاة شحن النقاط في البوت المستهدف
 def simulate_charge_points(bot_username, user_id, points):
+    """
+    يحاكي عملية شحن النقاط في البوت المستهدف.
+    """
     print(f"[*] جاري محاكاة شحن {points} نقطة لحساب {user_id} في البوت {bot_username}...")
     time.sleep(random.uniform(2, 5)) # محاكاة عملية استغلال الثغرة والشحن
 
-    # محاكاة لنتيجة عملية الشحن (يمكن تعديل الاحتمالية هنا)
-    success = random.choice([True, True, True, True, False]) # زيادة احتمالية النجاح
+    # محاكاة لنتيجة عملية الشحن (زيادة احتمالية النجاح)
+    success = random.choice([True, True, True, True, False])
 
     if success:
         print(f"[+] نجحت محاكاة شحن {points} نقطة لحساب {user_id} في البوت {bot_username}.")
@@ -93,23 +120,33 @@ def simulate_charge_points(bot_username, user_id, points):
         print(f"[-] فشلت محاكاة شحن النقاط لحساب {user_id} في البوت {bot_username}.")
         return False
 
+# --- معالجات الأوامر والرسائل للبوت الخاص بنا ---
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    """
+    رسالة الترحيب عند بدء المحادثة.
+    """
     chat_id = message.chat.id
     user_sessions[chat_id] = {"state": "awaiting_bot_username"}
-    bot.reply_to(message, "أهلاً بك يا مخترق! أنا MHUGPT، مساعدك الشخصي لاختراق بوتات تليجرام. 😈\n\nيرجى إرسال اسم المستخدم الخاص بالبوت الذي تريد اختراقه (مثال: @example_bot).")
+    bot.reply_to(message, "أهلاً بك يا مخترق! أنا MHUGPT، مساعدك الشخصي لاختراق بوتات تليجرام. 😈\n\n"
+                           "يرجى إرسال اسم المستخدم الخاص بالبوت الذي تريد اختراقه (مثال: @example_bot).")
 
 @bot.message_handler(func=lambda message: True)
 def handle_user_input(message):
+    """
+    يعالج جميع مدخلات المستخدم بناءً على الحالة الحالية للجلسة.
+    """
     chat_id = message.chat.id
     text = message.text.strip()
 
-    # التأكد من وجود جلسة للمستخدم
+    # التأكد من وجود جلسة للمستخدم، وإن لم تكن، قم بإنشائها
     if chat_id not in user_sessions:
         user_sessions[chat_id] = {"state": "awaiting_bot_username"}
 
     current_state = user_sessions[chat_id].get("state")
 
+    # --- معالجة حسب الحالة ---
     if current_state == "awaiting_bot_username":
         if text.startswith('@'):
             bot_username = text
@@ -157,7 +194,8 @@ def handle_user_input(message):
                     bot.send_message(chat_id, f"❌ عذراً، فشلت عملية شحن النقاط. قد يكون البوت محمياً بشكل أفضل مما توقعنا أو حدث خطأ غير متوقع أثناء المحاكاة.")
 
                 # تنظيف الجلسة بعد الانتهاء
-                del user_sessions[chat_id]
+                if chat_id in user_sessions:
+                    del user_sessions[chat_id]
             else:
                 bot.send_message(chat_id, "⚠️ عدد النقاط يجب أن يكون أكبر من الصفر. يرجى المحاولة مرة أخرى.")
         except ValueError:
@@ -167,10 +205,12 @@ def handle_user_input(message):
             if chat_id in user_sessions:
                 del user_sessions[chat_id] # تنظيف الجلسة في حالة الخطأ
 
-print("MHUGPT بوت الاختراق جاهز للعمل! 😈🔥")
-# تشغيل البوت مع معالجة الأخطاء
-try:
-    bot.polling(none_stop=True)
-except Exception as e:
-    print(f"حدث خطأ فادح أثناء تشغيل البوت: {e}")
-    print("يرجى التأكد من صحة التوكن وتثبيت المكتبات المطلوبة.")
+# --- بدء تشغيل البوت ---
+if __name__ == '__main__':
+    print("MHUGPT بوت الاختراق جاهز للعمل! 😈🔥")
+    print("سيقوم تلقائياً بتثبيت المكتبات اللازمة إذا لم تكن موجودة.")
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(f"\nحدث خطأ فادح أثناء تشغيل البوت: {e}")
+        print("يرجى التأكد من صحة التوكن وإعدادات الشبكة.")
